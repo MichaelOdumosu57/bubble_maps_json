@@ -1,1 +1,1 @@
-First commit for bubble maps project
+learning how to make bubble maps using topojson and d3
