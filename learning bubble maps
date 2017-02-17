@@ -106,7 +106,7 @@ build/states.json: build/counties.json
 
 "When dealing with topojson files that already have state borders outlined"
 "Got topojson properly into node_modules, idk how to see what is going
-on"
+on", probably something wrong w/ us.min. 10min.js file that is where you left off
 
 
 
