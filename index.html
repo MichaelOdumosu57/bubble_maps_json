@@ -6,17 +6,40 @@
 
 path {
   fill: none;
-  stroke: #000;
+  stroke: #fff;
   stroke-linejoin: round;
   stroke-linecap: round;
+}
+    .land{
+      fill: #ddd;
+    }
+.circle {
+  fill-opacity: .1;  
+  fill: white;
+  stroke: black;
+  stroke-width: .5px; 
+}
+    
+ .text{
+  fill: #777;
+  font: 10px sans-serif;
+  text-anchor: middle;
+}
+ 
+.bubble {
+    fill: blue;
+    fill-opacity: .5;
+    stroke: #fff;
+    stroke-width: .5px;
 }
 
 </style>
 </head>
 <body>
-hello
+
 <script src="d3.v3.min.js" charset="utf-8"></script>
 <script src="topojson.v1.min.js"></script>
+<script src="build/ACS_15_5YR_B01003_with_ann.csv" ></script>
 <script>
 
 var width = 960,
@@ -28,6 +51,7 @@ var width = 960,
 //     .parallels([50, 60])
 //     .scale(6000)
 //     .translate([width / 2, height / 2]);
+    
 
 var projection = d3.geo.albersUsa()
   .scale(1000)
@@ -42,43 +66,125 @@ var svg = d3.select("body").append("svg")
 
 var county_group = svg.append('g')
 
-var svg = svg.append('h')
+var radius = d3.scale.sqrt()
+    .domain([1, 2e6])
+    .range([1, 15]);
 
+var legend = svg.append("g")
+    .attr("class", "legend")
+    .attr("transform", "translate(" + (width - 50) + "," + (height - 20) + ")")
+  .selectAll("g")
+    .data([1e6, 5e6, 10e6])
+  .enter()
+    .append("g");
 
 d3.json("build/counties_topo.json", function(error, us) {
   if (error) return console.error(us);
+  d3.csv("build/ACS_15_5YR_B01003_with_ann.csv", function(error,pop) {
+  console.log(pop[0].GEO_ID, +pop[0]['Estimate; Total']) 
 
-  console.log('the fetures', topojson.feature(us, us.objects.counties).features)
-
-  var counties = topojson.feature(us, us.objects.counties).features
-
-  var country = topojson
-    .mesh(us, us.objects.counties, function(a, b) { return a.properties.COUNTY === b.properties.COUNTY; })
+  var popByGeoid = {} 
+  pop.forEach(function(d) {
+    popByGeoid[d.GEO_ID] = + d['Estimate; Total']
+  })
+  
+  console.log(popByGeoid['0500000US01001'])
+  //var counties = topojson.feature(us, us.objects.counties).features
 
   var states = topojson
     .mesh(us, us.objects.counties, function(a, b) { return a.properties.STATE !== b.properties.STATE; })
   
   
+  
+  var country = topojson
+    .mesh(us, us.objects.counties, function(a, b) { return a.properties.COUNTY === b.properties.COUNTY; })
+
   //var states = topojson.feature(states, states.objects.counties).features
 
-
-
+  county_group
+    .data([popByGeoid])
+    .enter()
+    .append("path")
+        .attr("d",path)
+  
   county_group
     .selectAll('.counties')
     .data([country])
     .enter()
     .append("path")
+       .attr("d", path)
+       .attr("fill", '#efefef')
+       .attr('class', 'land') 
+    
+  county_group
+    .selectAll('.counties')
+    .data([states])
+    .enter()
+    .append("path")
       .attr("d", path);
+      
+legend.append("circle")
+    .attr("class","circle")
+    .attr("cy", function(d) { return -radius(d); })
+    .attr("r", radius);
 
-  svg
+legend.append("text")
+    .attr("class","text")
+    .attr("y", function(d) { return -2 * radius(d); })
+    .attr("dy", "1.3em")
+    .text(d3.format(".1s"));
+    
+  /*county_group
+    .append("g")
+    .attr("class", "bubble")
+  .selectAll("circle")
+    .data(topojson.feature(us, us.objects.counties).features)
+  .enter().append("circle")
+    .attr("transform", function(d,i) {
+        if(i < 10) {
+            console.log(path.centroid(d))
+        }
+        return isNaN(path.centroid(d)[0]) ?
+            "" :
+            "translate(" + path.centroid(d) + ")"; 
+    })
+    .attr("r", 1.5);*/
+    
+    county_group
+    .append("g")
+    .attr("class", "bubble")
+  .selectAll("circle")
+    .data(topojson.feature(us, us.objects.counties).features)
+      .sort(function(a, b) { return b.properties.CENSUSAREA - a.properties.CENSUSAREA; })
+  .enter().append("circle")
+    .attr("transform", function(d,i) { 
+        if(i < 1) {
+            console.log(path.centroid(d))
+        }
+        return isNaN(path.centroid(d)[0]) ?
+            "" :
+            "translate(" + path.centroid(d) + ")"; 
+    })  
+    .attr("r", function(d,i) { 
+        return  isNaN(radius(popByGeoid[d.properties.GEO_ID])) ?
+                "" :
+                radius(popByGeoid[d.properties.GEO_ID]);
+        
+    });
+    
+  /*svg
     .selectAll('.counties')
     .data([country])
     .enter()
     .append("path")
-      .attr("d", path);
+      .attr("d", path); */
+
+    });  
+    
 });
 
 </script>
 </body>
 </html>
 
+    
